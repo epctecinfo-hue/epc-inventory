@@ -87,6 +87,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--grey);color:var(--
 .item-btns{display:flex;flex-direction:column;gap:3px;}
 .btn-take{background:var(--blue);color:white;border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;}
 .btn-ret{background:var(--green);color:white;border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;}
+.btn-transfer{background:var(--teal);color:white;border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;}
 
 /* BOTTOM NAV */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--grey2);display:flex;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,0.06);}
@@ -325,6 +326,49 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--grey);color:var(--
 
 <div class="toast" id="toast"></div>
 
+<!-- TRANSFER MODAL -->
+<div class="modal-overlay" id="transferModal" onclick="closeModal('transferModal',event)">
+  <div class="modal" style="position:relative">
+    <button class="btn-close" onclick="closeModal('transferModal')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔄 העברת פריט</div>
+    <div class="modal-sub" id="transferSub"></div>
+    <div class="form-group">
+      <label class="form-label">מיקום מקור</label>
+      <input class="form-control" type="text" id="transferFrom" readonly style="background:#f5f5f5;">
+    </div>
+    <div class="form-group">
+      <label class="form-label">מיקום יעד</label>
+      <select class="form-control" id="transferTo">
+        <option value="מחסן גדול">🏭 מחסן גדול</option>
+        <option value="מחסן קטן">📦 מחסן קטן</option>
+        <option value="רכב איציק">🚐 רכב איציק</option>
+        <option value="רכב בן">🚐 רכב בן</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">שם עובד</label>
+      <select class="form-control" id="transferWorker">
+        <option value="">בחר עובד...</option>
+        <option>גל</option><option>בן</option><option>איציק</option><option>בר</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">כמות</label>
+      <div class="qty-ctrl">
+        <button class="qty-btn-big" onclick="chTransferQty(-1)">−</button>
+        <div class="qty-disp" id="transferQtyDisp">1</div>
+        <button class="qty-btn-big" onclick="chTransferQty(1)">+</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">הערה (אופציונלי)</label>
+      <input class="form-control" type="text" id="transferNote" placeholder="הערה...">
+    </div>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#1B6E6E,var(--teal))" onclick="submitTransfer()">✓ העבר</button>
+  </div>
+</div>
+
 <script>
 const PASSWORD = 'Epc_2026!@';
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMLYin7oYv43JWnmNKnRbbCEl2tDw947DtBrdEzc7msMd1_rPFuB5Y6aP8buP4YkHP/exec';
@@ -341,6 +385,7 @@ let state = {
   currentView: 'inventory',
   activeFilter: 'all',
   txItem: null, txType: null, txQty: 1, txLoc: null,
+  transferItem: null, transferLoc: null, transferQty: 1,
   editItem: null, editLoc: null,
   lastSync: localStorage.getItem('epc_sync') || null
 };
@@ -470,6 +515,7 @@ function renderInventory() {
         <div class="item-btns">
           <button class="btn-take" onclick="event.stopPropagation();openTx('take','${item.id}','${state.currentLoc}')">לקח</button>
           <button class="btn-ret" onclick="event.stopPropagation();openTx('ret','${item.id}','${state.currentLoc}')">החזר</button>
+          <button class="btn-transfer" onclick="event.stopPropagation();openTransfer('${item.id}','${state.currentLoc}')">העבר</button>
         </div>
       </div>`;
     });
@@ -846,6 +892,96 @@ function toast(msg) {
 
 function showLoader(v) {
   document.getElementById('loader').style.display = v ? 'flex' : 'none';
+}
+
+// ── Transfer ──────────────────────────────────────
+function openTransfer(itemId, loc) {
+  const items = state.inventory[loc]||[];
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  state.transferItem = item;
+  state.transferLoc = loc;
+  state.transferQty = 1;
+  document.getElementById('transferFrom').value = loc;
+  document.getElementById('transferSub').textContent = `${item.name} · ${[item.size,item.type].filter(Boolean).join(' · ')}`;
+  document.getElementById('transferQtyDisp').textContent = '1';
+  document.getElementById('transferNote').value = '';
+  document.getElementById('transferWorker').value = '';
+  // Remove current location from options
+  const sel = document.getElementById('transferTo');
+  Array.from(sel.options).forEach(o => {
+    o.disabled = o.value === loc;
+    if (o.value !== loc) sel.value = o.value;
+  });
+  document.getElementById('transferModal').classList.add('open');
+}
+
+function chTransferQty(d) {
+  state.transferQty = Math.max(1, state.transferQty + d);
+  document.getElementById('transferQtyDisp').textContent = state.transferQty;
+}
+
+function submitTransfer() {
+  const worker = document.getElementById('transferWorker').value;
+  if (!worker) { toast('⚠️ יש לבחור עובד'); return; }
+  const toLoc = document.getElementById('transferTo').value;
+  const fromLoc = state.transferLoc;
+  const item = state.transferItem;
+  const qty = state.transferQty;
+  const note = document.getElementById('transferNote').value;
+
+  if (toLoc === fromLoc) { toast('⚠️ מקור ויעד זהים'); return; }
+
+  // Check qty in source
+  const fromIdx = (state.inventory[fromLoc]||[]).findIndex(i => i.id === item.id);
+  if (fromIdx < 0) { toast('⚠️ פריט לא נמצא במקור'); return; }
+  if ((parseInt(state.inventory[fromLoc][fromIdx].qty)||0) < qty) { toast('⚠️ אין מספיק יחידות'); return; }
+
+  // Deduct from source
+  state.inventory[fromLoc][fromIdx].qty = (parseInt(state.inventory[fromLoc][fromIdx].qty)||0) - qty;
+
+  // Add to destination
+  const toIdx = (state.inventory[toLoc]||[]).findIndex(i => i.id === item.id);
+  if (toIdx >= 0) {
+    // Item exists in destination
+    state.inventory[toLoc][toIdx].qty = (parseInt(state.inventory[toLoc][toIdx].qty)||0) + qty;
+  } else {
+    // Add new item to destination
+    if (!state.inventory[toLoc]) state.inventory[toLoc] = [];
+    state.inventory[toLoc].push({...item, qty});
+  }
+
+  // Log
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('he-IL') + ' ' + now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+  state.log.push({
+    type: 'transfer', worker, qty, loc: fromLoc, toLoc, note,
+    name: item.name, id: item.id, date: dateStr
+  });
+  save();
+
+  // Sync to Sheets
+  if (SCRIPT_URL) {
+    fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+      action:'updateQty', location:fromLoc, mkt:item.id,
+      newQty: state.inventory[fromLoc][fromIdx].qty
+    })}).catch(console.error);
+    if (toIdx >= 0) {
+      fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+        action:'updateQty', location:toLoc, mkt:item.id,
+        newQty: state.inventory[toLoc][toIdx].qty
+      })}).catch(console.error);
+    }
+    fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+      action:'addTransaction', type:'transfer', worker, qty,
+      location: fromLoc + ' → ' + toLoc, mkt:item.id, name:item.name, note
+    })}).catch(console.error);
+  }
+
+  closeModal('transferModal');
+  toast(`✓ ${qty} יחידות הועברו מ${fromLoc} ל${toLoc}`);
+  renderInventory();
+  updateAlertBadge();
 }
 
 // ── Init ──────────────────────────────────────────
