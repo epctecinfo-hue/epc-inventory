@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ט.ל. ניהול מלאי</title>
+<style>
+:root {
+  --blue:#2B7FD4; --blue-dark:#1A5FAA; --blue-light:#EBF4FF;
+  --green:#2E9E6B; --red:#E53935; --orange:#F57C00;
+  --grey:#F5F7FA; --grey2:#E8ECF0; --grey3:#90A4AE;
+  --text:#1A2332; --text2:#546E7A; --white:#FFFFFF;
+  --radius:14px; --shadow:0 2px 12px rgba(43,127,212,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--grey);color:var(--text);min-height:100vh;}
+
+/* LOGIN */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));}
+.login-card{background:white;border-radius:20px;padding:32px 24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+.login-logo{text-align:center;margin-bottom:20px;}
+.login-logo svg{width:64px;height:64px;}
+.login-title{font-size:18px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:24px;}
+.login-input{width:100%;padding:14px 16px;border:2px solid var(--grey2);border-radius:12px;font-size:16px;outline:none;transition:border-color 0.2s;margin-bottom:12px;}
+.login-input:focus{border-color:var(--blue);}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;}
+.login-error{color:var(--red);font-size:12px;text-align:center;margin-top:8px;display:none;}
+
+/* APP */
+.app{display:none;}
+.header{background:linear-gradient(135deg,var(--blue-dark),var(--blue));padding:14px 16px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(26,95,170,0.3);}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.co-name{color:white;font-size:13px;font-weight:700;}
+.co-sub{color:rgba(255,255,255,0.75);font-size:10px;}
+.logo-circle{width:40px;height:40px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.search-wrap{position:relative;}
+.search-input{width:100%;padding:9px 38px 9px 14px;border-radius:25px;border:none;font-size:14px;background:rgba(255,255,255,0.18);color:white;outline:none;}
+.search-input::placeholder{color:rgba(255,255,255,0.6);}
+.search-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.7);}
+
+/* TABS */
+.nav-tabs{display:flex;gap:6px;padding:12px 14px 0;overflow-x:auto;scrollbar-width:none;}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.nav-tab{flex-shrink:0;padding:7px 14px;border-radius:25px;border:2px solid var(--blue-light);background:white;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.nav-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
+
+/* STATS */
+.stats-bar{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;}
+.stats-bar::-webkit-scrollbar{display:none;}
+.stat-card{flex-shrink:0;background:white;border-radius:12px;padding:8px 12px;min-width:80px;box-shadow:var(--shadow);text-align:center;}
+.stat-num{font-size:20px;font-weight:800;color:var(--blue);line-height:1;}
+.stat-num.red{color:var(--red);}
+.stat-num.orange{color:var(--orange);}
+.stat-label{font-size:9px;color:var(--text2);margin-top:2px;}
+
+/* FILTERS */
+.filter-bar{display:flex;gap:6px;padding:6px 14px 4px;overflow-x:auto;scrollbar-width:none;}
+.filter-bar::-webkit-scrollbar{display:none;}
+.filter-chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:2px solid transparent;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.filter-chip.all{border-color:var(--blue-light);color:var(--blue);}
+.filter-chip.all.active{background:var(--blue);color:white;}
+.filter-chip.ok{border-color:#C8E6C9;color:var(--green);}
+.filter-chip.ok.active{background:var(--green);color:white;}
+.filter-chip.warn{border-color:#FFE0B2;color:var(--orange);}
+.filter-chip.warn.active{background:var(--orange);color:white;}
+.filter-chip.low{border-color:#FFCDD2;color:var(--red);}
+.filter-chip.low.active{background:var(--red);color:white;}
+
+/* CONTENT */
+.content{padding:0 14px 90px;}
+.cat-header{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;padding:14px 4px 5px;}
+.item-card{background:white;border-radius:var(--radius);padding:11px 12px;margin-bottom:7px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;border-right:4px solid transparent;}
+.item-card.ok{border-right-color:var(--green);}
+.item-card.warn{border-right-color:var(--orange);}
+.item-card.low{border-right-color:var(--red);}
+.item-info{flex:1;min-width:0;}
+.item-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-meta{font-size:11px;color:var(--text2);margin-top:1px;}
+.item-id{font-size:10px;color:var(--grey3);margin-top:1px;}
+.item-qty{text-align:center;min-width:44px;}
+.qty-num{font-size:20px;font-weight:800;line-height:1;}
+.qty-num.ok{color:var(--green);}
+.qty-num.warn{color:var(--orange);}
+.qty-num.low{color:var(--red);}
+.qty-label{font-size:9px;color:var(--text2);}
+.item-btns{display:flex;flex-direction:column;gap:3px;}
+.btn-take{background:var(--blue);color:white;border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;}
+.btn-ret{background:var(--green);color:white;border:none;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;cursor:pointer;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--grey2);display:flex;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,0.06);}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;color:var(--grey3);font-size:9px;font-weight:600;gap:2px;border:none;background:none;}
+.bnav-btn.active{color:var(--blue);}
+.bnav-icon{font-size:20px;line-height:1;}
+.badge{background:var(--red);color:white;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;position:absolute;top:4px;right:calc(50% - 16px);}
+
+/* FAB */
+.fab{position:fixed;bottom:72px;left:16px;width:52px;height:52px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:white;border:none;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(43,127,212,0.4);z-index:99;display:flex;align-items:center;justify-content:center;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:24px 24px 0 0;width:100%;max-width:600px;padding:18px 18px 24px;max-height:90vh;overflow-y:auto;animation:slideUp 0.25s ease;position:relative;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--grey2);border-radius:4px;margin:0 auto 14px;}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:3px;}
+.modal-sub{font-size:11px;color:var(--text2);margin-bottom:16px;}
+.form-group{margin-bottom:13px;}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block;}
+.form-control{width:100%;padding:11px 12px;border:2px solid var(--grey2);border-radius:10px;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;background:var(--grey);}
+.form-control:focus{border-color:var(--blue);background:white;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.qty-ctrl{display:flex;align-items:center;gap:14px;}
+.qty-btn-big{width:42px;height:42px;border-radius:50%;border:2px solid var(--blue);background:white;color:var(--blue);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.qty-disp{font-size:26px;font-weight:800;min-width:50px;text-align:center;}
+.btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;}
+.btn-danger{width:100%;padding:13px;background:var(--red);color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;}
+.btn-close{position:absolute;top:18px;left:16px;background:var(--grey);border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;}
+.dash-card{background:white;border-radius:14px;padding:14px;box-shadow:var(--shadow);text-align:center;}
+.dash-num{font-size:28px;font-weight:900;line-height:1;}
+.dash-label{font-size:11px;color:var(--text2);margin-top:3px;}
+.dash-card.blue .dash-num{color:var(--blue);}
+.dash-card.green .dash-num{color:var(--green);}
+.dash-card.orange .dash-num{color:var(--orange);}
+.dash-card.red .dash-num{color:var(--red);}
+.section-title{font-size:13px;font-weight:700;color:var(--text2);padding:8px 14px 4px;}
+
+/* LOG */
+.log-item{background:white;border-radius:12px;padding:11px 12px;margin-bottom:7px;box-shadow:var(--shadow);}
+.log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.log-tag{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.log-tag.take{background:#FFF3E0;color:var(--orange);}
+.log-tag.ret{background:#E8F5E9;color:var(--green);}
+.log-date{font-size:10px;color:var(--text2);}
+.log-name{font-size:13px;font-weight:600;}
+.log-detail{font-size:11px;color:var(--text2);margin-top:1px;}
+
+/* ALERT ITEM */
+.alert-item{background:white;border-radius:12px;padding:11px 12px;margin-bottom:7px;box-shadow:var(--shadow);border-right:4px solid var(--red);}
+.alert-item.warn{border-right-color:var(--orange);}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--text2);}
+.empty-icon{font-size:44px;margin-bottom:10px;}
+
+/* TOAST */
+.toast{position:fixed;top:70px;right:50%;transform:translateX(50%);background:var(--text);color:white;padding:10px 18px;border-radius:25px;font-size:12px;font-weight:600;z-index:300;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* LOADER */
+.loader{position:fixed;inset:0;background:rgba(255,255,255,0.8);z-index:400;display:flex;align-items:center;justify-content:center;display:none;}
+.spinner{width:40px;height:40px;border:4px solid var(--grey2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader"><div class="spinner"></div></div>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="32" r="30" stroke="#2B7FD4" stroke-width="3" stroke-dasharray="5 4"/>
+        <circle cx="32" cy="32" r="18" fill="#1B8A8F" opacity="0.9"/>
+        <path d="M10 32 Q20 22 32 32 Q44 42 54 32" stroke="#2B7FD4" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M32 10 Q22 20 32 32 Q42 44 32 54" stroke="#2B7FD4" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M46 20 L54 32 L42 32" fill="#2B7FD4"/>
+      </svg>
+    </div>
+    <div class="login-title">ט.ל. החברה לאיכות הסביבה</div>
+    <div class="login-sub">מערכת ניהול מלאי</div>
+    <input class="login-input" type="password" id="pwInput" placeholder="סיסמה..." onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">כניסה</button>
+    <div class="login-error" id="loginErr">סיסמה שגויה</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="co-name">ט.ל. החברה לאיכות הסביבה בע"מ</div>
+        <div class="co-sub">מערכת ניהול מלאי</div>
+      </div>
+      <div class="logo-circle">
+        <svg viewBox="0 0 40 40" width="26" height="26" fill="none">
+          <circle cx="20" cy="20" r="18" stroke="#2B7FD4" stroke-width="2" stroke-dasharray="4 3"/>
+          <circle cx="20" cy="20" r="11" fill="#1B8A8F" opacity="0.85"/>
+          <path d="M6 20 Q12 14 20 20 Q28 26 34 20" stroke="#2B7FD4" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M20 6 Q14 12 20 20 Q26 28 20 34" stroke="#2B7FD4" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M29 13 L34 20 L24 20" fill="#2B7FD4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="search-wrap" id="searchWrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" type="text" placeholder="חיפוש לפי שם, מידה, סוג, קטגוריה, מיקום..." id="searchInput" oninput="onSearch()">
+    </div>
+  </div>
+
+  <div class="nav-tabs" id="navTabs">
+    <button class="nav-tab active" onclick="switchLoc('מחסן גדול',this)">🏭 מחסן גדול</button>
+    <button class="nav-tab" onclick="switchLoc('מחסן קטן',this)">📦 מחסן קטן</button>
+    <button class="nav-tab" onclick="switchLoc('רכב איציק',this)">🚐 רכב איציק</button>
+    <button class="nav-tab" onclick="switchLoc('רכב בן',this)">🚐 רכב בן</button>
+  </div>
+
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="filter-bar" id="filterBar"></div>
+  <div class="content" id="mainContent"></div>
+
+  <button class="fab" onclick="openAddItem()" id="fabBtn">＋</button>
+
+  <div class="bottom-nav">
+    <button class="bnav-btn active" id="bnav-inv" onclick="showView('inventory')" style="position:relative">
+      <span class="bnav-icon">📦</span>מלאי
+    </button>
+    <button class="bnav-btn" id="bnav-dash" onclick="showView('dashboard')">
+      <span class="bnav-icon">📊</span>דשבורד
+    </button>
+    <button class="bnav-btn" id="bnav-alert" onclick="showView('alerts')" style="position:relative">
+      <span class="bnav-icon">⚠️</span>התראות
+    </button>
+    <button class="bnav-btn" id="bnav-log" onclick="showView('log')">
+      <span class="bnav-icon">📋</span>יומן
+    </button>
+    <button class="bnav-btn" id="bnav-sync" onclick="syncSheets()">
+      <span class="bnav-icon">🔄</span>סנכרון
+    </button>
+  </div>
+</div>
+
+<!-- TRANSACTION MODAL -->
+<div class="modal-overlay" id="txModal" onclick="closeModal('txModal',event)">
+  <div class="modal">
+    <button class="btn-close" onclick="closeModal('txModal')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="txTitle">לקיחת פריט</div>
+    <div class="modal-sub" id="txSub"></div>
+    <div class="form-group">
+      <label class="form-label">שם עובד</label>
+      <select class="form-control" id="txWorker">
+        <option value="">בחר עובד...</option>
+        <option>גל</option><option>בן</option><option>איציק</option><option>בר</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">כמות</label>
+      <div class="qty-ctrl">
+        <button class="qty-btn-big" onclick="chQty(-1)">−</button>
+        <div class="qty-disp" id="txQtyDisp">1</div>
+        <button class="qty-btn-big" onclick="chQty(1)">+</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">הערה (אופציונלי)</label>
+      <input class="form-control" type="text" id="txNote" placeholder="פרויקט, הערה...">
+    </div>
+    <button class="btn-primary" id="txSubmit" onclick="submitTx()">✓ אישור</button>
+  </div>
+</div>
+
+<!-- ADD/EDIT ITEM MODAL -->
+<div class="modal-overlay" id="itemModal" onclick="closeModal('itemModal',event)">
+  <div class="modal">
+    <button class="btn-close" onclick="closeModal('itemModal')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="itemModalTitle">הוספת פריט חדש</div>
+    <div class="modal-sub" id="itemModalSub"></div>
+    <div class="form-group">
+      <label class="form-label">שם פריט *</label>
+      <input class="form-control" type="text" id="fName" placeholder="שם הפריט...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">קטגוריה</label>
+        <input class="form-control" type="text" id="fCat" placeholder="קטגוריה...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">סוג</label>
+        <input class="form-control" type="text" id="fType" placeholder="סוג...">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">מידה</label>
+        <input class="form-control" type="text" id="fSize" placeholder='מידה...'>
+      </div>
+      <div class="form-group">
+        <label class="form-label">כמות</label>
+        <input class="form-control" type="number" id="fQty" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">סף התראה</label>
+        <input class="form-control" type="number" id="fMin" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">מחיר (₪)</label>
+        <input class="form-control" type="number" id="fPrice" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="form-group" id="locGroup">
+      <label class="form-label">מיקום *</label>
+      <select class="form-control" id="fLoc">
+        <option value="מחסן גדול">🏭 מחסן גדול</option>
+        <option value="מחסן קטן">📦 מחסן קטן</option>
+        <option value="רכב איציק">🚐 רכב איציק</option>
+        <option value="רכב בן">🚐 רכב בן</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="submitItem()">✓ שמור</button>
+    <button class="btn-danger" id="deleteBtn" onclick="deleteItem()" style="display:none">🗑 מחק פריט</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PASSWORD = 'Epc_2026!@';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMLYin7oYv43JWnmNKnRbbCEl2tDw947DtBrdEzc7msMd1_rPFuB5Y6aP8buP4YkHP/exec';
+const LOCATIONS = ['מחסן גדול','מחסן קטן','רכב איציק','רכב בן'];
+const WORKERS = ['גל','בן','איציק','בר'];
+
+// ── Data ──────────────────────────────────────────
+const SEED = {"מחסן גדול": [{"id": "INV-001", "cat": "אביזרים משלימים", "name": "מופה", "size": "1/2 צול", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-002", "cat": "אביזרים משלימים", "name": "מופה", "size": "3/4 צול", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-003", "cat": "אביזרים משלימים", "name": "מופה", "size": "1 צול", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-004", "cat": "אביזרים משלימים", "name": "מופה", "size": "2 צול", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-005", "cat": "אביזרים משלימים", "name": "ניפל", "size": "1/2 צול", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-006", "cat": "אביזרים משלימים", "name": "ניפל", "size": "3/4 צול", "type": "מכאני", "qty": 8, "min": 0, "notes": ""}, {"id": "INV-007", "cat": "אביזרים משלימים", "name": "ניפל", "size": "1 צול", "type": "מכאני", "qty": 13, "min": 0, "notes": ""}, {"id": "INV-008", "cat": "אביזרים משלימים", "name": "ניפל", "size": "1 1/4 צול", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-009", "cat": "אביזרים משלימים", "name": "ניפל", "size": "1 1/2 צול", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-010", "cat": "אביזרים משלימים", "name": "ניפל", "size": "2 צול", "type": "מכאני", "qty": 17, "min": 0, "notes": ""}, {"id": "INV-011", "cat": "אביזרים משלימים", "name": "ניפל", "size": "3 צול", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-012", "cat": "אביזרים משלימים", "name": "זווית 90", "size": "1/2 צול", "type": "מכאני", "qty": 7, "min": 0, "notes": ""}, {"id": "INV-013", "cat": "אביזרים משלימים", "name": "זווית 90", "size": "3/4 צול", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-014", "cat": "אביזרים משלימים", "name": "זווית 90", "size": "1 צול", "type": "מכאני", "qty": 9, "min": 0, "notes": ""}, {"id": "INV-015", "cat": "אביזרים משלימים", "name": "זווית 90", "size": "1 1/2 צול", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-016", "cat": "אביזרים משלימים", "name": "זווית 90", "size": "2 צול", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-017", "cat": "אביזרים משלימים", "name": "פקק", "size": "1/2 חוץ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-018", "cat": "אביזרים משלימים", "name": "פקק", "size": "1/4 חוץ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-019", "cat": "אביזרים משלימים", "name": "פקק", "size": "3/4 חוץ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-020", "cat": "אביזרים משלימים", "name": "פקק", "size": "3/4 פנים", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-021", "cat": "אביזרים משלימים", "name": "פקק", "size": "1 צול חוץ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-022", "cat": "אביזרים משלימים", "name": "פקק", "size": "2 צול חוץ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-023", "cat": "אביזרים משלימים", "name": "פקק", "size": "2 צול פנים", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-024", "cat": "אביזרים משלימים", "name": "מחבר מהיר", "size": "זכר ל- 1 צול", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-025", "cat": "אביזרים משלימים", "name": "מחבר מהיר", "size": "זכר ל- 3/4 צול", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-026", "cat": "אביזרים משלימים", "name": "מחבר מהיר", "size": "נקבה לצינור 20", "type": "מכאני", "qty": 17, "min": 0, "notes": ""}, {"id": "INV-027", "cat": "אביזרים משלימים", "name": "מצמד", "size": "מצמד 50 ל- 2 צול חוץ חוץ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-028", "cat": "אביזרים משלימים", "name": "מצמד", "size": "מצמד 63 ל- 2 צול חוץ חוץ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-029", "cat": "אביזרים משלימים", "name": "מצמד", "size": "מצמד זווית 63 ל- 2 צול חוץ חוץ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-030", "cat": "אביזרים משלימים", "name": "מצמד", "size": "מצמד 75 ל- 3 צול חוץ חוץ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-031", "cat": "אביזרי צנרת", "name": "מחבר", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-032", "cat": "אביזרי צנרת", "name": "מחבר ל- 1/2 צול חוץ", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-033", "cat": "אביזרי צנרת", "name": "מחבר ל- 1/2 צול פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-034", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 צול פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-035", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 צול חוץ", "size": "16 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-036", "cat": "אביזרי צנרת", "name": "מחבר מעבר 16-20 מ\"מ", "size": "16- 20 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-037", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-191", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "16 מ\"מ", "type": "מכאני", "qty": 3, "min": 2, "notes": ""}, {"id": "INV-038", "cat": "אביזרי צנרת", "name": "T ל- 1/2 פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-039", "cat": "אביזרי צנרת", "name": "T ל- 3/4 פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-040", "cat": "אביזרי צנרת", "name": "מחבר", "size": "20 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-041", "cat": "אביזרי צנרת", "name": "מחבר ל- 1/2 חוץ", "size": "20 מ\"מ", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-042", "cat": "אביזרי צנרת", "name": "מחבר ל- 1/2 פנים", "size": "20 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-043", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 חוץ", "size": "20 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-044", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 פנים", "size": "20 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-045", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "20 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-046", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 1/2 חוץ", "size": "20 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-047", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3/4 פנים", "size": "20 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-049", "cat": "אביזרי צנרת", "name": "מחבר", "size": "25 מ\"מ", "type": "מכאני", "qty": 17, "min": 0, "notes": ""}, {"id": "INV-050", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 פנים", "size": "25 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-051", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 חוץ", "size": "25 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-052", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 צול פנים", "size": "25 מ\"מ", "type": "מכאני", "qty": 17, "min": 0, "notes": ""}, {"id": "INV-053", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 צול חוץ", "size": "25 מ\"מ", "type": "מכאני", "qty": 15, "min": 0, "notes": ""}, {"id": "INV-054", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "25 מ\"מ", "type": "מכאני", "qty": 15, "min": 0, "notes": ""}, {"id": "INV-055", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3/4 חוץ", "size": "25 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-056", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3/4 פנים", "size": "25 מ\"מ", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-057", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 1 צול פנים", "size": "25 מ\"מ", "type": "מכאני", "qty": 7, "min": 0, "notes": ""}, {"id": "INV-058", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 1 צול חוץ", "size": "25 מ\"מ", "type": "מכאני", "qty": 9, "min": 0, "notes": ""}, {"id": "INV-064", "cat": "אביזרי צנרת", "name": "מחבר", "size": "32 מ\"מ", "type": "מכאני", "qty": 14, "min": 0, "notes": ""}, {"id": "INV-065", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 פנים", "size": "32 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-066", "cat": "אביזרי צנרת", "name": "מחבר ל- 3/4 חוץ", "size": "32 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-067", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 צול פנים", "size": "32 מ\"מ", "type": "מכאני", "qty": 6, "min": 0, "notes": ""}, {"id": "INV-068", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 צול חוץ", "size": "32 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-069", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 1/2 צול חוץ", "size": "32 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-070", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "32 מ\"מ", "type": "מכאני", "qty": 10, "min": 0, "notes": ""}, {"id": "INV-071", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3/4 פנים", "size": "32 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-072", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3/4 חוץ", "size": "32 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-073", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 1 צול פנים", "size": "32 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-074", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 1 צול חוץ", "size": "32 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-075", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "32 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-076", "cat": "אביזרי צנרת", "name": "מחבר T ל- 1 צול חוץ", "size": "32 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-078", "cat": "אביזרי צנרת", "name": "מחבר", "size": "50 מ\"מ", "type": "מכאני", "qty": 14, "min": 0, "notes": ""}, {"id": "INV-079", "cat": "אביזרי צנרת", "name": "מחבר ל-1 צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-080", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-192", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 1/2 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-081", "cat": "אביזרי צנרת", "name": "מחבר ל- 1 1/2 צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 10, "min": 0, "notes": ""}, {"id": "INV-082", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 16, "min": 0, "notes": ""}, {"id": "INV-083", "cat": "אביזרי צנרת", "name": "מחבר ל 2 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 18, "min": 0, "notes": ""}, {"id": "INV-084", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "50 מ\"מ", "type": "מכאני", "qty": 7, "min": 0, "notes": ""}, {"id": "INV-085", "cat": "אביזרי צנרת", "name": "מחבר T ל- 2 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-086", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "50 מ\"מ", "type": "מכאני", "qty": 47, "min": 0, "notes": ""}, {"id": "INV-087", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 24, "min": 0, "notes": ""}, {"id": "INV-088", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 15, "min": 0, "notes": ""}, {"id": "INV-193", "cat": "אביזרי צנרת", "name": "פקק", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-090", "cat": "אביזרי צנרת", "name": "מחבר", "size": "50 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 22, "min": 0, "notes": ""}, {"id": "INV-091", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "50 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 11, "min": 0, "notes": ""}, {"id": "INV-092", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "50 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-093", "cat": "אביזרי צנרת", "name": "מחבר", "size": "63 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-094", "cat": "אביזרי צנרת", "name": "מחבר ל 2 צול פנים", "size": "63 מ\"מ", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-095", "cat": "אביזרי צנרת", "name": "מחבר ל 2 צול חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-096", "cat": "אביזרי צנרת", "name": "זווית  90", "size": "63 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-097", "cat": "אביזרי צנרת", "name": "זווית 90 ל 2 צול פנים", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-098", "cat": "אביזרי צנרת", "name": "זווית 90 ל 2 צול חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-099", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-100", "cat": "אביזרי צנרת", "name": "מחבר T ל 2 צול פנים", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-101", "cat": "אביזרי צנרת", "name": "מחבר T ל 2 צול חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-102", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-103", "cat": "אביזרי צנרת", "name": "זווית 90 ל 2 צול פנים", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-104", "cat": "אביזרי צנרת", "name": "זווית 90 ל 2 צול חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-105", "cat": "אביזרי צנרת", "name": "ברז ויסוט 2 צול חוץ- חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-106", "cat": "אביזרי צנרת", "name": "אל חוזר פלסטי 2 צול חוץ-חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-107", "cat": "אביזרי צנרת", "name": "מחבר קצר", "size": "63 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 12, "min": 0, "notes": ""}, {"id": "INV-108", "cat": "אביזרי צנרת", "name": "מחבר ארוך", "size": "63 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-109", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "63 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-110", "cat": "אביזרי צנרת", "name": "זווית 45", "size": "63 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-111", "cat": "אביזרי צנרת", "name": "מחבר T 63-50-63", "size": "63 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-112", "cat": "אביזרי צנרת", "name": "פקק", "size": "63 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-113", "cat": "אביזרי צנרת", "name": "מחבר", "size": "75 מ\"מ", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-114", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-115", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-116", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 1/2 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-117", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 1/2 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-118", "cat": "אביזרי צנרת", "name": "מחבר ל- 3 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-119", "cat": "אביזרי צנרת", "name": "מחבר ל- 3 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-120", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "75 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-121", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-122", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-123", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 וחצי צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-124", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 וחצי צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-125", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-126", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-127", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "75 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-128", "cat": "אביזרי צנרת", "name": "מחבר T ל- 2 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-129", "cat": "אביזרי צנרת", "name": "מחבר T ל- 2 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-130", "cat": "אביזרי צנרת", "name": "מחבר T ל- 3 צול פנים", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-131", "cat": "אביזרי צנרת", "name": "מחבר T ל- 3 צול חוץ", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-132", "cat": "אביזרי צנרת", "name": "אל חוזר", "size": "75 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-133", "cat": "אביזרי צנרת", "name": "מחבר", "size": "75 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 12, "min": 0, "notes": ""}, {"id": "INV-134", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "75 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-135", "cat": "אביזרי צנרת", "name": "פקק", "size": "75 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-136", "cat": "אביזרי צנרת", "name": "מחבר", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-137", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 צול פנים", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-138", "cat": "אביזרי צנרת", "name": "מחבר ל- 2 צול חוץ", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-139", "cat": "אביזרי צנרת", "name": "מחבר ל- 3 צול פנים", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-140", "cat": "אביזרי צנרת", "name": "מחבר ל- 3 צול חוץ", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-141", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-142", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 צול חוץ", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-143", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 2 צול פנים", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-144", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3 צול פנים", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-145", "cat": "אביזרי צנרת", "name": "זווית 90 ל- 3 צול חוץ", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-146", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "90 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-147", "cat": "אביזרי צנרת", "name": "מחבר", "size": "90 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 9, "min": 0, "notes": ""}, {"id": "INV-148", "cat": "אביזרי צנרת", "name": "זווית", "size": "90 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-149", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "90 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-150", "cat": "אביזרי צנרת", "name": "מחבר", "size": "110 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-151", "cat": "אביזרי צנרת", "name": "זווית", "size": "110 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-152", "cat": "אביזרי צנרת", "name": "מחבר T", "size": "110 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-153", "cat": "אביזרי צנרת", "name": "מחבר", "size": "110 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-154", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "110 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-155", "cat": "אביזרי צנרת", "name": "זווית 90", "size": "160 מ\"מ", "type": "אלקטרופיוז'ן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-156", "cat": "אביזרי צנרת", "name": "מעבר קוטר", "size": "75/90", "type": "אלקטרופיוז'ן", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-157", "cat": "אביזרי צנרת", "name": "מעבר קוטר", "size": "63/90", "type": "אלקטרופיוז'ן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-158", "cat": "מצופים", "name": "כחול", "size": "", "type": "בקרה", "qty": 15, "min": 0, "notes": ""}, {"id": "INV-159", "cat": "מצופים", "name": "צהוב", "size": "", "type": "בקרה", "qty": 13, "min": 0, "notes": ""}, {"id": "INV-160", "cat": "אביזרי חשמל", "name": "מפסק פאקט ידית סיבוב", "size": "", "type": "מפסק", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-161", "cat": "אביזרי חשמל", "name": "מפסק פאקט כבאים 4P", "size": "4P", "type": "מפסק", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-162", "cat": "אביזרי חשמל", "name": "מפסק פאקט כבאים 3P", "size": "3P", "type": "מפסק", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-163", "cat": "אביזרי חשמל", "name": "מונה חשמל 3X100A", "size": "3X100", "type": "מפסק", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-164", "cat": "אביזרי חשמל", "name": "מפסק פחת תלת פאזי 40A", "size": "40A", "type": "מפסק", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-165", "cat": "אביזרי חשמל", "name": "מפסק ראשי תלת פאזי 40A", "size": "40A", "type": "מפסק", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-166", "cat": "אביזרי חשמל", "name": "טיימר מחזורי", "size": "מחזורי", "type": "טיימר", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-166-B", "cat": "אביזרי חשמל", "name": "טיימר מחזורי", "size": "מחזורי", "type": "CROUZET", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-167", "cat": "אביזרי חשמל", "name": "טיימר השהייה", "size": "השהייה", "type": "טיימר", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-168", "cat": "אביזרי חשמל", "name": "שעון שבת", "size": "שבת", "type": "טיימר", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-169", "cat": "אביזרי חשמל", "name": "מערכת החלפה אלקטרונית גנרטור PSK MCE 4", "size": "4", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-170", "cat": "אביזרי חשמל", "name": "מא\"ז", "size": "3X63A", "type": "AEG", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-194", "cat": "אביזרי חשמל", "name": "מא\"ז", "size": "C-20", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-195", "cat": "אביזרי חשמל", "name": "מא\"ז", "size": "C-25", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-171", "cat": "אביזרי חשמל", "name": "מפסק ראשי תלת פאזי 63A", "size": "63A", "type": "מפסק", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-172", "cat": "אביזרי חשמל", "name": "פוטו גל- תאורת חוץ", "size": "חוץ", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-173", "cat": "אביזרי חשמל", "name": "מפסק תאורה מוגן", "size": "מוגן", "type": "מפסק", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-174", "cat": "אביזרי חשמל", "name": "קופסאת חיבור", "size": "10X10", "type": "קופסאת חיבור", "qty": 24, "min": 0, "notes": ""}, {"id": "INV-175", "cat": "אביזרי חשמל", "name": "קופסאת חיבור", "size": "8X8", "type": "קופסאת חיבור", "qty": 22, "min": 0, "notes": ""}, {"id": "INV-176", "cat": "אביזרי חשמל", "name": "קופסאת חיבור", "size": "15.4X11", "type": "קופסאת חיבור", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-177", "cat": "אביזרי חשמל", "name": "קופסאת חיבור", "size": "19X15", "type": "קופסאת חיבור", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-196", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1-1.6A", "type": "ABB", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-197", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6-2.5A", "type": "ABB", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-198", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "ABB", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-199", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "6.3-10A", "type": "ABB", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-200", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "4-6.3A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-201", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "10-16A", "type": "EATON", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-197-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6-2.5A", "type": "MOELLER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "MOELLER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-200-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "4-6.3A", "type": "MOELLER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-C", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "SIEMONS", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-202", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "5.5-8A", "type": "SIEMONS", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-D", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "GE", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-203", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "13-18A", "type": "TCL", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-204", "cat": "אביזרי חשמל", "name": "הגנת מנוע לחצן", "size": "1-2.35A", "type": "MOELLER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-205", "cat": "אביזרי חשמל", "name": "הגנת מנוע לחצן", "size": "10-16A", "type": "MOELLER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-206", "cat": "אביזרי חשמל", "name": "הגנת מנוע לחצן", "size": "1.6-2.5A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-178", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5A-4", "type": "הגנת מנוע", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-179", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1A-1.6", "type": "הגנת מנוע", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-180", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6A-2.5", "type": "הגנת מנוע", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-187", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "4A-6.3", "type": "הגנת מנוע", "qty": 6, "min": 0, "notes": ""}, {"id": "INV-181", "cat": "אביזרי חשמל", "name": "מגען תלת  פאזי", "size": "230V- 20K", "type": "מגען תלת פאזי", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-182", "cat": "אביזרי חשמל", "name": "מגען תלת פאזי", "size": "24V- 11K", "type": "מגען תלת פאזי", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-207", "cat": "אביזרי חשמל", "name": "מגען", "size": "", "type": "HAGER", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-183", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי (ABB)", "size": "230V", "type": "ABB", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-184", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי (EATON)", "size": "230V", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-185", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי (EATON)", "size": "24V", "type": "EATON", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-186", "cat": "אביזרי חשמל", "name": "מגען זעיר (MOELLER)", "size": "24V", "type": "MOELLER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-187-B", "cat": "אביזרי חשמל", "name": "פחת חד פאזי", "size": "40A", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-188", "cat": "אביזרי חשמל", "name": "מחלף פיקוד", "size": "", "type": "HAGER", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-189", "cat": "אביזרי חשמל", "name": "חצי אוטומט", "size": "C-10", "type": "", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-190", "cat": "אביזרי חשמל", "name": "חצי אוטומט", "size": "C-6", "type": "", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-007-B", "cat": "אביזרי נירוסטה", "name": "ניפל", "size": "1 צול", "type": "נירוסטה", "qty": 5, "min": 2, "notes": ""}, {"id": "INV-208", "cat": "אביזרי נירוסטה", "name": "ניפל 10cm אורך", "size": "1 צול", "type": "נירוסטה", "qty": 5, "min": 2, "notes": ""}, {"id": "INV-209", "cat": "אביזרי נירוסטה", "name": "ניפל 20cm אורך", "size": "1 צול", "type": "נירוסטה", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-210", "cat": "אביזרי נירוסטה", "name": "ניפל 10cm אורך", "size": "1.5 צול", "type": "נירוסטה", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-211", "cat": "אביזרי נירוסטה", "name": "ניפל 8cm אורך", "size": "1.5 צול", "type": "נירוסטה", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-212", "cat": "אביזרי נירוסטה", "name": "ניפל", "size": "1/4 צול", "type": "נירוסטה", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-005-B", "cat": "אביזרי נירוסטה", "name": "ניפל", "size": "1/2 צול", "type": "נירוסטה", "qty": 10, "min": 3, "notes": ""}, {"id": "INV-001-B", "cat": "אביזרי נירוסטה", "name": "מופה", "size": "1/2 צול", "type": "נירוסטה", "qty": 10, "min": 3, "notes": ""}, {"id": "INV-002-B", "cat": "אביזרי נירוסטה", "name": "מופה", "size": "3/4 צול", "type": "נירוסטה", "qty": 10, "min": 3, "notes": ""}, {"id": "INV-003-B", "cat": "אביזרי נירוסטה", "name": "מופה", "size": "1 צול", "type": "נירוסטה", "qty": 2, "min": 3, "notes": ""}, {"id": "INV-213", "cat": "אביזרי נירוסטה", "name": "זווית 90", "size": "1/4 צול", "type": "נירוסטה", "qty": 2, "min": 2, "notes": ""}, {"id": "INV-012-B", "cat": "אביזרי נירוסטה", "name": "זווית 90", "size": "1/2 צול", "type": "נירוסטה", "qty": 10, "min": 3, "notes": ""}, {"id": "INV-013-B", "cat": "אביזרי נירוסטה", "name": "זווית 90", "size": "3/4 צול", "type": "נירוסטה", "qty": 10, "min": 3, "notes": ""}, {"id": "INV-014-B", "cat": "אביזרי נירוסטה", "name": "זווית 90", "size": "1 צול", "type": "נירוסטה", "qty": 1, "min": 2, "notes": ""}, {"id": "INV-214", "cat": "אביזרי נירוסטה", "name": "זווית 90", "size": "1.5 צול", "type": "נירוסטה", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-215", "cat": "אביזרי נירוסטה", "name": "זווית 45", "size": "3/4 צול", "type": "נירוסטה", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-216", "cat": "אביזרי נירוסטה", "name": "זווית 45", "size": "1 צול", "type": "נירוסטה", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-217", "cat": "אביזרי נירוסטה", "name": "בושינג", "size": "1צול ל- 1/2 צול", "type": "נירוסטה", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-005-C", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 4, "min": 1, "notes": ""}, {"id": "INV-006-B", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 11, "min": 1, "notes": ""}, {"id": "INV-007-C", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "1 צול", "type": "ברזל מגולוון", "qty": 32, "min": 1, "notes": ""}, {"id": "INV-208-B", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 10cm אורך", "size": "1 צול", "type": "ברזל מגולוון", "qty": 12, "min": 1, "notes": ""}, {"id": "INV-218", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "1.5 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-008-B", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "1 1/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-010-B", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "2 צול", "type": "ברזל מגולוון", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-011-B", "cat": "אביזרי ברזל מגולוון", "name": "ניפל", "size": "3 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-219", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 5cm אורך", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-220", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 10cm אורך", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-221", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 10cm אורך", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-222", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 15cm אורך", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 4, "min": 1, "notes": ""}, {"id": "INV-223", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 15cm אורך", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-224", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 15cm אורך", "size": "1.5 צול", "type": "ברזל מגולוון", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-225", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 15cm אורך", "size": "2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-226", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 25cm אורך", "size": "1 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-227", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 25cm אורך", "size": "1.5 צול", "type": "ברזל מגולוון", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-228", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 50cm אורך", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-229", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 50cm אורך", "size": "1 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-230", "cat": "אביזרי ברזל מגולוון", "name": "ניפל 50cm אורך", "size": "2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-001-C", "cat": "אביזרי ברזל מגולוון", "name": "מופה", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-002-C", "cat": "אביזרי ברזל מגולוון", "name": "מופה", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 12, "min": 1, "notes": ""}, {"id": "INV-003-C", "cat": "אביזרי ברזל מגולוון", "name": "מופה", "size": "1 צול", "type": "ברזל מגולוון", "qty": 30, "min": 1, "notes": ""}, {"id": "INV-231", "cat": "אביזרי ברזל מגולוון", "name": "מופה", "size": "1.5 צול", "type": "ברזל מגולוון", "qty": 4, "min": 1, "notes": ""}, {"id": "INV-004-B", "cat": "אביזרי ברזל מגולוון", "name": "מופה", "size": "2 צול", "type": "ברזל מגולוון", "qty": 5, "min": 1, "notes": ""}, {"id": "INV-012-C", "cat": "אביזרי ברזל מגולוון", "name": "זווית 90", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-014-C", "cat": "אביזרי ברזל מגולוון", "name": "זווית 90", "size": "1 צול", "type": "ברזל מגולוון", "qty": 12, "min": 1, "notes": ""}, {"id": "INV-232", "cat": "אביזרי ברזל מגולוון", "name": "זווית 90", "size": "1 1/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-214-B", "cat": "אביזרי ברזל מגולוון", "name": "זווית 90", "size": "1.5 צול", "type": "ברזל מגולוון", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-233", "cat": "אביזרי ברזל מגולוון", "name": "זווית 90 חוץ חוץ", "size": "1 צול", "type": "ברזל מגולוון", "qty": 12, "min": 1, "notes": ""}, {"id": "INV-234", "cat": "אביזרי ברזל מגולוון", "name": "זווית 90 חוץ חוץ", "size": "1.5 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-235", "cat": "אביזרי ברזל מגולוון", "name": "זווית 45", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-236", "cat": "אביזרי ברזל מגולוון", "name": "מחבר T", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-237", "cat": "אביזרי ברזל מגולוון", "name": "מחבר T", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-238", "cat": "אביזרי ברזל מגולוון", "name": "מחבר T", "size": "1 צול", "type": "ברזל מגולוון", "qty": 12, "min": 1, "notes": ""}, {"id": "INV-239", "cat": "אביזרי ברזל מגולוון", "name": "מחבר T", "size": "2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-240", "cat": "אביזרי ברזל מגולוון", "name": "פקק חוץ", "size": "1/2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-241", "cat": "אביזרי ברזל מגולוון", "name": "פקק חוץ", "size": "3/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-242", "cat": "אביזרי ברזל מגולוון", "name": "פקק חוץ", "size": "1 צול", "type": "ברזל מגולוון", "qty": 6, "min": 1, "notes": ""}, {"id": "INV-243", "cat": "אביזרי ברזל מגולוון", "name": "פקק פנים", "size": "2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-244", "cat": "אביזרי ברזל מגולוון", "name": "בושנג", "size": "1/2- 3/4 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-245", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "1/2-1 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-246", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "1/2-2 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-247", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "3/4-1 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-248", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "3/4-2 צול", "type": "ברזל מגולוון", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-249", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "1-1.5 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-250", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "1-2 צול", "type": "ברזל מגולוון", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-251", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "1.5-2 צול", "type": "ברזל מגולוון", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-252", "cat": "אביזרי ברזל מגולוון", "name": "בושינג", "size": "2-3 צול", "type": "ברזל מגולוון", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-253", "cat": "ברזים", "name": "ברז פליז חוץ פנים", "size": "1/2 צול", "type": "פליז", "qty": 6, "min": 1, "notes": ""}, {"id": "INV-254", "cat": "ברזים", "name": "ברז פליז חוץ פנים", "size": "3/4 צול", "type": "פליז", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-255", "cat": "ברזים", "name": "בר פליז פנים פנים", "size": "1 צול", "type": "פליז", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-256", "cat": "ברזים", "name": "ברז פליז חוץ פנים", "size": "1 צול", "type": "פליז", "qty": 5, "min": 1, "notes": ""}, {"id": "INV-257", "cat": "ברזים", "name": "ברז גן", "size": "1/2 צול", "type": "גן", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-258", "cat": "אל חוזרים", "name": "אל חוזר קפיץ", "size": "1/2 צול", "type": "קפיץ", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-259", "cat": "אל חוזרים", "name": "אל חוזר קפיץ", "size": "3/4 צול", "type": "קפיץ", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-260", "cat": "אל חוזרים", "name": "אל חוזר קפיץ", "size": "1.5 צול", "type": "קפיץ", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-261", "cat": "אל חוזרים", "name": "אל חוזר קפיץ", "size": "2 צול", "type": "קפיץ", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-262", "cat": "אל חוזרים", "name": "אל חוזר קלאפה", "size": "1.5 צול", "type": "קלאפה", "qty": 1, "min": 1, "notes": ""}, {"id": "סה\"כ שורות:", "cat": "", "name": "", "size": "", "type": "", "qty": 0, "min": 0, "notes": ""}], "מחסן קטן": [{"id": "INV-263", "cat": "צנרת", "name": "צינור 3 מטר", "size": "25 מ\"מ", "type": "פולאטילן", "qty": 7, "min": 0, "notes": ""}, {"id": "INV-264", "cat": "צנרת", "name": "צינור 2 מטר", "size": "32 מ\"מ", "type": "פולאטילן", "qty": 6, "min": 0, "notes": ""}, {"id": "INV-265", "cat": "צנרת", "name": "צינור 1.5 מטר", "size": "32 מ\"מ", "type": "פולאטילן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-266", "cat": "צנרת", "name": "צינור 6 מטר", "size": "50 מ\"מ", "type": "פולאטילן", "qty": 9, "min": 0, "notes": ""}, {"id": "INV-267", "cat": "צנרת", "name": "צינור 5 מטר", "size": "50 מ\"מ", "type": "פולאטילן", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-268", "cat": "צנרת", "name": "צינור 3.7 מטר", "size": "50 מ\"מ", "type": "פולאטילן", "qty": 6, "min": 0, "notes": ""}, {"id": "INV-269", "cat": "צנרת", "name": "צינור 2.7 מטר", "size": "50 מ\"מ", "type": "פולאטילן", "qty": 6, "min": 0, "notes": ""}, {"id": "INV-267-B", "cat": "צנרת", "name": "צינור 5 מטר", "size": "50 מ\"מ", "type": "PVC", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-270", "cat": "צנרת", "name": "צינור 4 מטר", "size": "50 מ\"מ", "type": "PVC", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-271", "cat": "צנרת", "name": "צינור 6 מטר", "size": "63 מ\"מ", "type": "פולאטילן", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-272", "cat": "צנרת", "name": "צינור 5 מטר", "size": "63 מ\"מ", "type": "פולאטילן", "qty": 8, "min": 0, "notes": ""}, {"id": "INV-273", "cat": "צנרת", "name": "צינור 2.7 מטר", "size": "63 מ\"מ", "type": "פולאטילן", "qty": 7, "min": 0, "notes": ""}, {"id": "INV-274", "cat": "צנרת", "name": "צינור 1.5 מטר", "size": "63 מ\"מ", "type": "פולאטילן", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-272-B", "cat": "צנרת", "name": "צינור 5 מטר", "size": "63 מ\"מ", "type": "PVC", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-275", "cat": "צנרת", "name": "צינור 3 מטר", "size": "63 מ\"מ", "type": "PVC", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-276", "cat": "צנרת", "name": "צינור 6 מטר", "size": "75 מ\"מ", "type": "פולאטילן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-277", "cat": "צנרת", "name": "צינור 4 מטר", "size": "75 מ\"מ", "type": "פולאטילן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-278", "cat": "צנרת", "name": "צינור 5 מטר", "size": "90 מ\"מ", "type": "פולאטילן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-279", "cat": "צנרת", "name": "צינור 2 מטר", "size": "90 מ\"מ", "type": "פולאטילן", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-278-B", "cat": "צנרת", "name": "צינור 5 מטר", "size": "90 מ\"מ", "type": "PVC", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-280", "cat": "", "name": "צינור 1.8 מטר", "size": "110 מ\"מ", "type": "פולאטילן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-281", "cat": "", "name": "צינור 2 מטר", "size": "110 מ\"מ", "type": "PVC", "qty": 2, "min": 0, "notes": ""}], "רכב איציק": [{"id": "INV-282", "cat": "אביזרי חשמל", "name": "נעלי כבל", "size": "", "type": "", "qty": 50, "min": 0, "notes": ""}, {"id": "INV-283", "cat": "אביזרי חשמל", "name": "אנטיגרונים", "size": "", "type": "", "qty": 20, "min": 0, "notes": ""}, {"id": "INV-284", "cat": "אביזרי חשמל", "name": "מהדקים פס דין", "size": "", "type": "", "qty": 20, "min": 0, "notes": ""}, {"id": "INV-285", "cat": "אביזרי חשמל", "name": "קלמרות", "size": "", "type": "", "qty": 30, "min": 0, "notes": ""}, {"id": "INV-286", "cat": "אביזרי חשמל", "name": "קופסאות חיבור", "size": "6-8 cm", "type": "", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-287", "cat": "אביזרי חשמל", "name": "שקע שירות לפס דין", "size": "", "type": "", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-288", "cat": "אביזרי חשמל", "name": "סוללות", "size": "AA/AAA/D/9V", "type": "", "qty": 10, "min": 0, "notes": ""}, {"id": "INV-196", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1-1.6A", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-197", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6-2.5A", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-200", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "4-6.3A", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-199", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "6.3-10A", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-196-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1-1.6A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-197-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6-2.5A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-200-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "4-6.3A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-199-B", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "6.3-10A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-201", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "10-16A", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-196-C", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1-1.6A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-197-C", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6-2.5A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-C", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-289", "cat": "אביזרי חשמל", "name": "הגנת מנוע לחצן", "size": "1-1.6A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-197-D", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "1.6-2.5A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-D", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "GE", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-198-E", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "2.5-4A", "type": "SIEMONS", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-290", "cat": "אביזרי חשמל", "name": "הגנת מנוע", "size": "5.35-8A", "type": "SIEMONS", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-291", "cat": "אביזרי חשמל", "name": "טיימר", "size": "מחזורי", "type": "CROUZET", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-292", "cat": "אביזרי חשמל", "name": "טיימר", "size": "השהייה", "type": "CROUZET", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-293", "cat": "אביזרי חשמל", "name": "טיימר", "size": "שבת", "type": "THEBEN", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-293-B", "cat": "אביזרי חשמל", "name": "טיימר", "size": "שבת", "type": "HAGER", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-190", "cat": "אביזרי חשמל", "name": "חצי אוטומט", "size": "C-6", "type": "ABB", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-294", "cat": "אביזרי חשמל", "name": "מגען חד פאזי", "size": "ESC-225 NO 230V", "type": "HAGER", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-295", "cat": "אביזרי חשמל", "name": "מחלף פיקוד", "size": "EPN-518 24V", "type": "HAGER", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-296", "cat": "אביזרי חשמל", "name": "מחלף פיקוד", "size": "EPN-515 230V", "type": "HAGER", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-297", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי", "size": "24V", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-298", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי", "size": "230V", "type": "ABB", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-297-B", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי", "size": "24V", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-298-B", "cat": "אביזרי חשמל", "name": "מגען זעיר תלת פאזי", "size": "230V", "type": "EATON", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-299", "cat": "אביזרי חשמל", "name": "מגע עזר צד", "size": "NO+NC", "type": "ABB", "qty": 4, "min": 1, "notes": ""}, {"id": "INV-299-B", "cat": "אביזרי חשמל", "name": "מגע עזר צד", "size": "NO+NC", "type": "EATON", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-299-C", "cat": "אביזרי חשמל", "name": "מגע עזר צד", "size": "NO+NC", "type": "GE", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-300", "cat": "אביזרי חשמל", "name": "מגע עזר קדמי", "size": "", "type": "ABB", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-300-B", "cat": "אביזרי חשמל", "name": "מגע עזר קדמי", "size": "", "type": "EATON", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-300-C", "cat": "אביזרי חשמל", "name": "מגע עזר קדמי", "size": "", "type": "GE", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-301", "cat": "אביזרי חשמל", "name": "ממסר", "size": "פין 14 24V", "type": "", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-302", "cat": "אביזרים נלווים", "name": "מצוף", "size": "", "type": "כחול", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-302-B", "cat": "אביזרים נלווים", "name": "מצוף", "size": "", "type": "צהוב", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-303", "cat": "אביזרים נלווים", "name": "מגרזות", "size": "", "type": "מגרזת", "qty": 6, "min": 2, "notes": ""}, {"id": "INV-304", "cat": "אביזרים נלווים", "name": "משמנות", "size": "", "type": "משמנת", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-305", "cat": "אביזרים נלווים", "name": "מסנן דיסקיות רשת", "size": "", "type": "עמיעד", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-306", "cat": "אביזרים נלווים", "name": "ראש מסנן", "size": "", "type": "עמיעד", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-307", "cat": "אביזרים נלווים", "name": "סנן אצבע", "size": "", "type": "עמיעד", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-031", "cat": "אביזרי צנרת", "name": "מחבר", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 2, "notes": ""}, {"id": "INV-037", "cat": "אביזרי צנרת", "name": "זווית", "size": "16 מ\"מ", "type": "מכאני", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-308", "cat": "אביזרי צנרת", "name": "מחבר ל 1/2 צול פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-309", "cat": "אביזרי צנרת", "name": "מחבר ל 1/2 צול חוץ", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-010", "cat": "אביזרי צנרת", "name": "ניפל", "size": "2 צול", "type": "מכאני", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-007", "cat": "אביזרי צנרת", "name": "ניפל", "size": "1 צול", "type": "מכאני", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-004", "cat": "אביזרי צנרת", "name": "מופה", "size": "2 צול", "type": "מכאני", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-310", "cat": "אביזרי צנרת", "name": "ברז כדורי", "size": "3/4 פלסטיק", "type": "מכאני", "qty": 2, "min": 2, "notes": ""}, {"id": "INV-311", "cat": "אביזרי צנרת", "name": "זווית", "size": "1/2 חוץ פנים", "type": "מכאני", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-312", "cat": "אביזרי צנרת", "name": "פורק אויר", "size": "1 צול", "type": "מכאני", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-313", "cat": "אביזרי צנרת", "name": "אטם חדירה", "size": "50 מ\"מ", "type": "מכאני", "qty": 3, "min": 1, "notes": ""}, {"id": "INV-314", "cat": "אביזרי צנרת", "name": "מחבר ל 1 1/2  צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 0, "min": 1, "notes": ""}, {"id": "INV-315", "cat": "אביזרי צנרת", "name": "מחבר ל 2 חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-316", "cat": "אביזרי צנרת", "name": "מחבר ל 2 פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-317", "cat": "אביזרי צנרת", "name": "זווית ל 2 חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 2, "min": 1, "notes": ""}, {"id": "INV-318", "cat": "אביזרי צנרת", "name": "רוכב ל 1 פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-319", "cat": "אביזרי צנרת", "name": "מחבר שן  ל2 חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 1, "notes": ""}, {"id": "INV-320", "cat": "אביזרי צנרת", "name": "מחבר שן ל 2 חוץ", "size": "63 מ\"מ", "type": "מכאני", "qty": 1, "min": 1, "notes": ""}], "רכב בן": [{"id": "INV-321", "cat": "כלי עבודה", "name": "מסור יד גדול", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-322", "cat": "כלי עבודה", "name": "מסור יד קטן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-323", "cat": "כלי עבודה", "name": "מפתח רינג", "size": "1\"-30\"", "type": "סגור", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-324", "cat": "כלי עבודה", "name": "מחדד צנרת", "size": "2\"", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-325", "cat": "כלי עבודה", "name": "מקדח כוס", "size": "2\"", "type": "לפוטר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-326", "cat": "כלי עבודה", "name": "מפתח צינורות אדום", "size": "40-75", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-327", "cat": "כלי עבודה", "name": "מפתח צינורות אדום", "size": "63-125", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-328", "cat": "כלי עבודה", "name": "חותך צנרת PVC", "size": "2\"", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-329", "cat": "כלי עבודה", "name": "מפתח צינורות", "size": "18\"", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-330", "cat": "כלי עבודה", "name": "מפתח צינורות", "size": "611 cm", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-331", "cat": "כלי עבודה", "name": "מפתח צינורות", "size": "12\"", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-332", "cat": "כלי עבודה", "name": "סט בוקסות", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-333", "cat": "כלי עבודה", "name": "ג'בקה", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-334", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "24", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-335", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "18", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-336", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "17", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-337", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "14", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-338", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "13", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-339", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "12", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-340", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "11", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-341", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "9", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-342", "cat": "כלי עבודה", "name": "מפתח רינג פתוח", "size": "8", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-343", "cat": "כלי עבודה", "name": "קאטר קטן (מזמרה לחשמל)", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-344", "cat": "כלי עבודה", "name": "קאטר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-345", "cat": "כלי עבודה", "name": "מברג שטוח", "size": "", "type": "קוקסר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-345-B", "cat": "כלי עבודה", "name": "מברג שטוח", "size": "", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-346", "cat": "כלי עבודה", "name": "מברג שטוח", "size": "דק", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-347", "cat": "כלי עבודה", "name": "מברג פיליפס", "size": "", "type": "קוקסר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-347-B", "cat": "כלי עבודה", "name": "מברג פיליפס", "size": "", "type": "גדול", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-348", "cat": "כלי עבודה", "name": "פטיש", "size": "2 ק\"ג", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-349", "cat": "כלי עבודה", "name": "ביט פיליפס ארוך", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-350", "cat": "כלי עבודה", "name": "סט מפתח כוכב", "size": "", "type": "כוכב", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-351", "cat": "כלי עבודה", "name": "צבט", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-352", "cat": "כלי עבודה", "name": "כף בנאים", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-353", "cat": "כלי עבודה", "name": "מפתח T  בוקסה", "size": "7 מ\"מ", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-354", "cat": "כלי עבודה", "name": "מפתח T  בוקסה", "size": "19 מ\"מ", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-344-B", "cat": "כלי עבודה", "name": "קאטר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-355", "cat": "כלי עבודה", "name": "מפתח שבדי", "size": "10\"", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-356", "cat": "כלי עבודה", "name": "סכין יפני", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-357", "cat": "כלי עבודה", "name": "פלס קטן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-358", "cat": "כלי עבודה", "name": "סט אלן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-359", "cat": "כלי עבודה", "name": "משייפת ( פצירה)", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-360", "cat": "כלי עבודה", "name": "מקדחים", "size": "6.-12", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-361", "cat": "כלי עבודה", "name": "שפכטל", "size": "גדול", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-362", "cat": "כלי עבודה", "name": "שפכטל", "size": "קטן", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-363", "cat": "כלי עבודה", "name": "סכינים יפנים", "size": "", "type": "", "qty": 10, "min": 0, "notes": ""}, {"id": "INV-364", "cat": "כלי עבודה", "name": "מקדח קונוס", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-365", "cat": "כלי עבודה", "name": "סט להביםלמסור חרב", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-366", "cat": "כלי עבודה", "name": "רולטקה", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-367", "cat": "כלי עבודה", "name": "דיסק חיתך  4.5 אניצ'", "size": "4.5 אינצ'", "type": "מתכת", "qty": 9, "min": 0, "notes": ""}, {"id": "INV-368", "cat": "כלי עבודה", "name": "דיסק שיוף 4.5 אינצ'", "size": "4.5 אינצ'", "type": "שיוף", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-369", "cat": "כלי עבודה", "name": "עט חפירה", "size": "קטן", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-370", "cat": "כלי עבודה נטענים", "name": "מברגת פוטר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-371", "cat": "כלי עבודה נטענים", "name": "מסור חרב", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-372", "cat": "כלי עבודה נטענים", "name": "משחזת זווית", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-373", "cat": "כלי עבודה נטענים", "name": "מפוח", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-374", "cat": "כלי עבודה נטענים", "name": "מקחה", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-375", "cat": "כלי עבודה נטענים", "name": "סוללה", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-376", "cat": "כלי עבודה נטענים", "name": "מטען מהיר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-377", "cat": "ציוד משלים", "name": "תרסיס גלוון קר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-378", "cat": "ציוד משלים", "name": "ספרי צבע שחור", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-379", "cat": "ציוד משלים", "name": "WD-40", "size": "", "type": "שימון", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-379-B", "cat": "ציוד משלים", "name": "WD-40", "size": "", "type": "מסיר גריז", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-380", "cat": "ציוד משלים", "name": "כפפות גומי", "size": "חבילה", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-381", "cat": "ציוד משלים", "name": "נייר דבק", "size": "", "type": "", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-382", "cat": "ציוד משלים", "name": "דבק חבלה", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-383", "cat": "ציוד משלים", "name": "איזולירבנד", "size": "", "type": "ירוק", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-303", "cat": "ציוד משלים", "name": "מגרזות", "size": "", "type": "", "qty": 6, "min": 0, "notes": ""}, {"id": "INV-304", "cat": "ציוד משלים", "name": "משמנות", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-384", "cat": "ציוד משלים", "name": "רצ'אט", "size": "", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-385", "cat": "ציוד משלים", "name": "אקדח סיליקון", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-386", "cat": "ציוד משלים", "name": "חבקים מתכת", "size": "", "type": "", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-387", "cat": "ציוד משלים", "name": "אוזניות מגן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-388", "cat": "ציוד משלים", "name": "מסכת חמצן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-389", "cat": "ציוד משלים", "name": "שרינק", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-390", "cat": "ציוד משלים", "name": "מנעול", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-391", "cat": "ציוד משלים", "name": "ידית לפתיחת שוחות", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-392", "cat": "ציוד משלים", "name": "כוס דיגום", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-393", "cat": "ציוד משלים", "name": "שרפרף", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-394", "cat": "ציוד משלים", "name": "רצועת נשיאה", "size": "2000 ק\"ג", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-395", "cat": "ציוד משלים", "name": "מד חמצן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-396", "cat": "ציוד משלים", "name": "משקפי מגן", "size": "", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-397", "cat": "ציוד משלים", "name": "להבים למחס", "size": "4.16", "type": "חבילה", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-398", "cat": "ציוד משלים", "name": "להבים למחס", "size": "4.8", "type": "חבילה", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-399", "cat": "חשמל", "name": "הגנת מנוע", "size": "", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-400", "cat": "חשמל", "name": "קונטקטור", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-401", "cat": "חשמל", "name": "קופסאת חיבורים", "size": "", "type": "", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-402", "cat": "צנרת/ אביזרי צנרת", "name": "ברז", "size": "1/2 צול", "type": "חיבור מהיר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-403", "cat": "צנרת/ אביזרי צנרת", "name": "ברז", "size": "3/4 צול", "type": "חיבור מהיר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-404", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר מהיר צינור גן זכר", "size": "16/20", "type": "", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-405", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר מהיר צינור גן נקבה", "size": "16/20", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-406", "cat": "צנרת/ אביזרי צנרת", "name": "אקדח השקייה", "size": "", "type": "חיבור מהיר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-407", "cat": "צנרת/ אביזרי צנרת", "name": "אל חוזר", "size": "1/2 צול", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-408", "cat": "צנרת/ אביזרי צנרת", "name": "אל חוזר", "size": "3/4 צול", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-409", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר חיבור מהיר לברז כיבוי", "size": "", "type": "חיבור מהיר", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-410", "cat": "צנרת/ אביזרי צנרת", "name": "צינור גן", "size": "2 מטר", "type": "גן", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-005", "cat": "צנרת/ אביזרי צנרת", "name": "ניפל", "size": "1/2 צול", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-006", "cat": "צנרת/ אביזרי צנרת", "name": "ניפל", "size": "3/4 צול", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-007", "cat": "צנרת/ אביזרי צנרת", "name": "ניפל", "size": "1 צול", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-012", "cat": "צנרת/ אביזרי צנרת", "name": "זווית 90", "size": "1/2 צול", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-240", "cat": "צנרת/ אביזרי צנרת", "name": "פקק חוץ", "size": "1/2 צול", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-033", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר ל- 1/2 צול פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-032", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר ל- 1/2 צול חוץ", "size": "16 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-034", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר ל- 3/4 צול פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-035", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר ל- 3/4 צול חוץ", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-411", "cat": "צנרת/ אביזרי צנרת", "name": "זווית ל- 1/2 פנים", "size": "16 מ\"מ", "type": "מכאני", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-191", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר T", "size": "16 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-090", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-083", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר ל 2 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-082", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר ל- 2 צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-088", "cat": "צנרת/ אביזרי צנרת", "name": "זווית ל- 2 צול חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-087", "cat": "צנרת/ אביזרי צנרת", "name": "זווית ל- 2 צול פנים", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-091", "cat": "צנרת/ אביזרי צנרת", "name": "זווית", "size": "50 מ\"מ", "type": "מכאני", "qty": 4, "min": 0, "notes": ""}, {"id": "INV-092", "cat": "צנרת/ אביזרי צנרת", "name": "מחבר T", "size": "50 מ\"מ", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-313", "cat": "צנרת/ אביזרי צנרת", "name": "אטם חדירה", "size": "50 מ\"מ", "type": "מכאני", "qty": 5, "min": 0, "notes": ""}, {"id": "INV-412", "cat": "צנרת/ אביזרי צנרת", "name": "ברז פנים חוץ", "size": "50 מ\"מ", "type": "מכאני", "qty": 0, "min": 0, "notes": ""}, {"id": "INV-413", "cat": "צנרת/ אביזרי צנרת", "name": "בושינג", "size": "2\"*2.5\" צול", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-414", "cat": "צנרת/ אביזרי צנרת", "name": "בושינג", "size": "1\"*1.5\"", "type": "מכאני", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-285", "cat": "ארגז חשמל", "name": "קלמרות", "size": "", "type": "", "qty": 3, "min": 0, "notes": ""}, {"id": "INV-415", "cat": "ארגז חשמל", "name": "מטר", "size": "7.5 מ'", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-416", "cat": "ארגז חשמל", "name": "רב מודד", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-417", "cat": "ארגז חשמל", "name": "טסטר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-418", "cat": "ארגז חשמל", "name": "טיימר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-419", "cat": "ארגז חשמל", "name": "זמזם חשמל", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-420", "cat": "ארגז חשמל", "name": "קבל חד פאזי", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-421", "cat": "ארגז חשמל", "name": "סרט דביק", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-422", "cat": "ארגז חשמל", "name": "סט מברגים שטוח", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-423", "cat": "ארגז חשמל", "name": "מברג פיליפס גדול", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-424", "cat": "ארגז חשמל", "name": "מברג פיליפס קטן", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-344-C", "cat": "ארגז חשמל", "name": "קאטר", "size": "", "type": "", "qty": 2, "min": 0, "notes": ""}, {"id": "INV-425", "cat": "ארגז חשמל", "name": "פלאייר", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-426", "cat": "ארגז חשמל", "name": "פלאייר שפיץ", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-427", "cat": "ארגז חשמל", "name": "גולל חשמל דק", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-356-B", "cat": "ארגז חשמל", "name": "סכין יפני", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}, {"id": "INV-428", "cat": "ארגז חשמל", "name": "לחצן סופיות", "size": "", "type": "", "qty": 1, "min": 0, "notes": ""}]};
+
+let state = {
+  inventory: JSON.parse(localStorage.getItem('epc_inv') || JSON.stringify(SEED)),
+  log: JSON.parse(localStorage.getItem('epc_log') || '[]'),
+  currentLoc: 'מחסן גדול',
+  currentView: 'inventory',
+  activeFilter: 'all',
+  txItem: null, txType: null, txQty: 1, txLoc: null,
+  editItem: null, editLoc: null,
+  lastSync: localStorage.getItem('epc_sync') || null
+};
+
+function save() {
+  localStorage.setItem('epc_inv', JSON.stringify(state.inventory));
+  localStorage.setItem('epc_log', JSON.stringify(state.log));
+}
+
+// ── Auth ──────────────────────────────────────────
+function doLogin() {
+  const pw = document.getElementById('pwInput').value;
+  if (pw === PASSWORD) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderInventory();
+    updateAlertBadge();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+  }
+}
+
+// ── Status ────────────────────────────────────────
+function getStatus(qty, min) {
+  if (qty === 0) return 'low';
+  if (min > 0 && qty <= min) return 'warn';
+  return 'ok';
+}
+function statusLabel(s) { return {ok:'תקין',warn:'התראה',low:'אזל'}[s]; }
+
+// ── Views ─────────────────────────────────────────
+function showView(v) {
+  state.currentView = v;
+  ['inv','dash','alert','log','sync'].forEach(x =>
+    document.getElementById('bnav-'+x)?.classList.remove('active'));
+  const map = {inventory:'inv',dashboard:'dash',alerts:'alert',log:'log'};
+  if (map[v]) document.getElementById('bnav-'+map[v])?.classList.add('active');
+
+  const showInv = v === 'inventory';
+  document.getElementById('navTabs').style.display = showInv ? 'flex' : 'none';
+  document.getElementById('filterBar').style.display = showInv ? 'flex' : 'none';
+  document.getElementById('searchWrap').style.display = showInv ? 'block' : 'none';
+  document.getElementById('fabBtn').style.display = showInv ? 'flex' : 'none';
+
+  if (v === 'inventory') renderInventory();
+  else if (v === 'dashboard') renderDashboard();
+  else if (v === 'alerts') renderAlerts();
+  else if (v === 'log') renderLog();
+}
+
+function switchLoc(loc, el) {
+  state.currentLoc = loc;
+  state.activeFilter = 'all';
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderInventory();
+}
+
+function setFilter(f) { state.activeFilter = f; renderInventory(); }
+
+// ── Inventory ─────────────────────────────────────
+function renderStats() {
+  const items = state.inventory[state.currentLoc] || [];
+  const low = items.filter(i => i.qty === 0).length;
+  const warn = items.filter(i => i.qty > 0 && i.min > 0 && i.qty <= i.min).length;
+  const ok = items.length - low - warn;
+  const totalQty = items.reduce((s,i) => s + (parseInt(i.qty)||0), 0);
+  const af = state.activeFilter;
+  document.getElementById('statsBar').innerHTML =
+    `<div class="stat-card"><div class="stat-num">${items.length}</div><div class="stat-label">פריטים</div></div>
+     <div class="stat-card"><div class="stat-num">${totalQty}</div><div class="stat-label">יחידות</div></div>
+     <div class="stat-card"><div class="stat-num orange">${warn}</div><div class="stat-label">התראה</div></div>
+     <div class="stat-card"><div class="stat-num red">${low}</div><div class="stat-label">אזל</div></div>`;
+  document.getElementById('filterBar').innerHTML =
+    `<button class="filter-chip all ${af==='all'?'active':''}" onclick="setFilter('all')">הכל <b>${items.length}</b></button>
+     <button class="filter-chip ok ${af==='ok'?'active':''}" onclick="setFilter('ok')">✅ תקין <b>${ok}</b></button>
+     <button class="filter-chip warn ${af==='warn'?'active':''}" onclick="setFilter('warn')">⚠️ התראה <b>${warn}</b></button>
+     <button class="filter-chip low ${af==='low'?'active':''}" onclick="setFilter('low')">🔴 אזל <b>${low}</b></button>`;
+}
+
+function renderInventory() {
+  renderStats();
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  let items = state.inventory[state.currentLoc] || [];
+
+  // Filter by status
+  if (state.activeFilter !== 'all')
+    items = items.filter(i => getStatus(parseInt(i.qty)||0, parseInt(i.min)||0) === state.activeFilter);
+
+  // Search across multiple fields
+  if (q) items = items.filter(i =>
+    (i.name||'').toLowerCase().includes(q) ||
+    (i.id||'').toLowerCase().includes(q) ||
+    (i.cat||'').toLowerCase().includes(q) ||
+    (i.type||'').toLowerCase().includes(q) ||
+    (i.size||'').toLowerCase().includes(q) ||
+    state.currentLoc.includes(q)
+  );
+
+  if (!items.length) {
+    document.getElementById('mainContent').innerHTML =
+      `<div class="empty"><div class="empty-icon">🔍</div><div>לא נמצאו פריטים</div></div>`;
+    return;
+  }
+
+  const cats = {};
+  items.forEach(i => { if (!cats[i.cat||'כללי']) cats[i.cat||'כללי'] = []; cats[i.cat||'כללי'].push(i); });
+
+  let html = '';
+  Object.entries(cats).forEach(([cat, citems]) => {
+    html += `<div class="cat-header">${cat}</div>`;
+    citems.forEach(item => {
+      const qty = parseInt(item.qty)||0;
+      const min = parseInt(item.min)||0;
+      const s = getStatus(qty, min);
+      html += `<div class="item-card ${s}" onclick="openEdit('${item.id}','${state.currentLoc}')">
+        <div class="item-info">
+          <div class="item-name">${item.name||''}</div>
+          <div class="item-meta">${[item.size,item.type].filter(Boolean).join(' · ')}</div>
+          <div class="item-id">${item.id}</div>
+        </div>
+        <div class="item-qty">
+          <div class="qty-num ${s}">${qty}</div>
+          <div class="qty-label">יחידות</div>
+        </div>
+        <div class="item-btns">
+          <button class="btn-take" onclick="event.stopPropagation();openTx('take','${item.id}','${state.currentLoc}')">לקח</button>
+          <button class="btn-ret" onclick="event.stopPropagation();openTx('ret','${item.id}','${state.currentLoc}')">החזר</button>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function onSearch() { renderInventory(); }
+
+// ── Dashboard ─────────────────────────────────────
+function renderDashboard() {
+  document.getElementById('statsBar').innerHTML = '';
+  document.getElementById('filterBar').innerHTML = '';
+
+  const today = new Date().toLocaleDateString('he-IL');
+  const todayLog = state.log.filter(e => e.date && e.date.includes(today));
+  const takesToday = todayLog.filter(e => e.type === 'take').length;
+  const retToday = todayLog.filter(e => e.type === 'ret').length;
+
+  let totalItems = 0, totalLow = 0, totalWarn = 0;
+  LOCATIONS.forEach(loc => {
+    const items = state.inventory[loc] || [];
+    totalItems += items.length;
+    items.forEach(i => {
+      const qty = parseInt(i.qty)||0, min = parseInt(i.min)||0;
+      if (qty === 0) totalLow++;
+      else if (min > 0 && qty <= min) totalWarn++;
+    });
+  });
+
+  let html = `<div class="dash-grid">
+    <div class="dash-card blue"><div class="dash-num">${totalItems}</div><div class="dash-label">סוגי פריטים</div></div>
+    <div class="dash-card red"><div class="dash-num">${totalLow}</div><div class="dash-label">פריטים שאזלו</div></div>
+    <div class="dash-card orange"><div class="dash-num">${totalWarn}</div><div class="dash-label">בהתראה</div></div>
+    <div class="dash-card green"><div class="dash-num">${state.log.length}</div><div class="dash-label">סה"כ תנועות</div></div>
+  </div>
+  <div class="section-title">📅 פעילות היום</div>
+  <div class="dash-grid">
+    <div class="dash-card orange"><div class="dash-num">${takesToday}</div><div class="dash-label">לקיחות היום</div></div>
+    <div class="dash-card green"><div class="dash-num">${retToday}</div><div class="dash-label">החזרות היום</div></div>
+  </div>
+  <div class="section-title">📦 מלאי לפי מיקום</div>
+  <div style="padding:0 14px">`;
+
+  LOCATIONS.forEach(loc => {
+    const items = state.inventory[loc] || [];
+    const low = items.filter(i => (parseInt(i.qty)||0) === 0).length;
+    const total = items.reduce((s,i) => s+(parseInt(i.qty)||0), 0);
+    html += `<div class="item-card ok" onclick="switchLocDash('${loc}')" style="margin-bottom:8px">
+      <div class="item-info"><div class="item-name">${loc}</div><div class="item-meta">${items.length} סוגי פריטים</div></div>
+      <div class="item-qty"><div class="qty-num ok">${total}</div><div class="qty-label">יחידות</div></div>
+      ${low > 0 ? `<div style="background:#FFCDD2;color:var(--red);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700">${low} אזלו</div>` : ''}
+    </div>`;
+  });
+
+  if (state.lastSync) html += `<div style="text-align:center;font-size:11px;color:var(--text2);padding:8px">סנכרון אחרון: ${state.lastSync}</div>`;
+
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function switchLocDash(loc) {
+  state.currentLoc = loc;
+  showView('inventory');
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    t.classList.toggle('active', LOCATIONS[i] === loc);
+  });
+}
+
+// ── Alerts ────────────────────────────────────────
+function renderAlerts() {
+  let html = '<div class="section-title">🔴 פריטים שאזלו</div><div style="padding:0 14px">';
+  let anyLow = false;
+  LOCATIONS.forEach(loc => {
+    (state.inventory[loc]||[]).filter(i => (parseInt(i.qty)||0) === 0).forEach(item => {
+      anyLow = true;
+      html += `<div class="alert-item">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">${loc} · ${[item.size,item.type].filter(Boolean).join(' · ')}</div>
+        <div class="item-id">${item.id}</div>
+      </div>`;
+    });
+  });
+  if (!anyLow) html += '<div class="empty" style="padding:20px"><div class="empty-icon">✅</div><div>אין פריטים שאזלו</div></div>';
+
+  html += '</div><div class="section-title">⚠️ פריטים בהתראה</div><div style="padding:0 14px">';
+  let anyWarn = false;
+  LOCATIONS.forEach(loc => {
+    (state.inventory[loc]||[]).filter(i => {
+      const qty = parseInt(i.qty)||0, min = parseInt(i.min)||0;
+      return qty > 0 && min > 0 && qty <= min;
+    }).forEach(item => {
+      anyWarn = true;
+      html += `<div class="alert-item warn">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">${loc} · נותרו ${item.qty} (מינימום: ${item.min})</div>
+        <div class="item-id">${item.id}</div>
+      </div>`;
+    });
+  });
+  if (!anyWarn) html += '<div class="empty" style="padding:20px"><div class="empty-icon">✅</div><div>אין פריטים בהתראה</div></div>';
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function updateAlertBadge() {
+  let count = 0;
+  LOCATIONS.forEach(loc => {
+    (state.inventory[loc]||[]).forEach(i => {
+      const qty = parseInt(i.qty)||0, min = parseInt(i.min)||0;
+      if (qty === 0 || (min > 0 && qty <= min)) count++;
+    });
+  });
+  const btn = document.getElementById('bnav-alert');
+  const existing = btn.querySelector('.badge');
+  if (existing) existing.remove();
+  if (count > 0) {
+    const b = document.createElement('span');
+    b.className = 'badge';
+    b.textContent = count > 9 ? '9+' : count;
+    btn.appendChild(b);
+  }
+}
+
+// ── Log ───────────────────────────────────────────
+function renderLog() {
+  if (!state.log.length) {
+    document.getElementById('mainContent').innerHTML =
+      '<div class="empty"><div class="empty-icon">📋</div><div>אין תנועות עדיין</div></div>';
+    return;
+  }
+  const reversed = [...state.log].reverse();
+  let html = '<div style="padding:0 14px">';
+  reversed.forEach(e => {
+    html += `<div class="log-item">
+      <div class="log-head">
+        <span class="log-tag ${e.type}">${e.type==='take'?'לקיחה':'החזרה'}</span>
+        <span class="log-date">${e.date}</span>
+      </div>
+      <div class="log-name">${e.name}</div>
+      <div class="log-detail">${e.worker} · ${e.loc} · ${e.qty} יחידות${e.note?' · '+e.note:''}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── Transaction ───────────────────────────────────
+function openTx(type, itemId, loc) {
+  const items = state.inventory[loc]||[];
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  state.txItem = item; state.txType = type; state.txQty = 1; state.txLoc = loc;
+  document.getElementById('txQtyDisp').textContent = '1';
+  document.getElementById('txNote').value = '';
+  document.getElementById('txWorker').value = '';
+  document.getElementById('txTitle').textContent = type === 'take' ? '📤 לקיחת פריט' : '📥 החזרת פריט';
+  document.getElementById('txSub').textContent = `${item.name} · ${[item.size,item.type].filter(Boolean).join(' · ')} · ${loc}`;
+  document.getElementById('txSubmit').style.background = type === 'take' ?
+    'linear-gradient(135deg,var(--blue-dark),var(--blue))' :
+    'linear-gradient(135deg,#1B6E4A,var(--green))';
+  document.getElementById('txModal').classList.add('open');
+}
+
+function chQty(d) {
+  state.txQty = Math.max(1, state.txQty + d);
+  document.getElementById('txQtyDisp').textContent = state.txQty;
+}
+
+function submitTx() {
+  const worker = document.getElementById('txWorker').value;
+  if (!worker) { toast('⚠️ יש לבחור עובד'); return; }
+  const {txItem: item, txType: type, txQty: qty, txLoc: loc} = state;
+  const note = document.getElementById('txNote').value;
+  const idx = (state.inventory[loc]||[]).findIndex(i => i.id === item.id);
+  if (idx < 0) return;
+
+  if (type === 'take') {
+    if ((parseInt(state.inventory[loc][idx].qty)||0) < qty) { toast('⚠️ אין מספיק יחידות'); return; }
+    state.inventory[loc][idx].qty = (parseInt(state.inventory[loc][idx].qty)||0) - qty;
+  } else {
+    state.inventory[loc][idx].qty = (parseInt(state.inventory[loc][idx].qty)||0) + qty;
+  }
+
+  const now = new Date();
+  const entry = {
+    type, worker, qty, loc, note, name: item.name, id: item.id,
+    date: now.toLocaleDateString('he-IL') + ' ' + now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})
+  };
+  state.log.push(entry);
+  save();
+
+  // Sync to Sheets if configured
+  if (SCRIPT_URL) {
+    fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+      action:'updateQty', location:loc, mkt:item.id, newQty: state.inventory[loc][idx].qty
+    })}).catch(console.error);
+    fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+      action:'addTransaction', type, worker, qty, location:loc, mkt:item.id, name:item.name, note
+    })}).catch(console.error);
+  }
+
+  closeModal('txModal');
+  toast(type === 'take' ? `✓ ${qty} יחידות נלקחו` : `✓ ${qty} יחידות הוחזרו`);
+  renderInventory();
+  updateAlertBadge();
+}
+
+// ── Add / Edit Item ───────────────────────────────
+function openAddItem() {
+  state.editItem = null; state.editLoc = null;
+  ['fName','fCat','fType','fSize'].forEach(id => document.getElementById(id).value = '');
+  ['fQty','fMin','fPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fLoc').value = state.currentLoc;
+  document.getElementById('itemModalTitle').textContent = '➕ הוספת פריט חדש';
+  document.getElementById('itemModalSub').textContent = 'מק"ט יוקצה אוטומטית';
+  document.getElementById('locGroup').style.display = 'block';
+  document.getElementById('deleteBtn').style.display = 'none';
+  document.getElementById('itemModal').classList.add('open');
+}
+
+function openEdit(itemId, loc) {
+  const items = state.inventory[loc]||[];
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  state.editItem = item; state.editLoc = loc;
+  document.getElementById('fName').value = item.name||'';
+  document.getElementById('fCat').value = item.cat||'';
+  document.getElementById('fType').value = item.type||'';
+  document.getElementById('fSize').value = item.size||'';
+  document.getElementById('fQty').value = item.qty||0;
+  document.getElementById('fMin').value = item.min||0;
+  document.getElementById('fPrice').value = item.price||0;
+  document.getElementById('itemModalTitle').textContent = '✏️ עריכת פריט';
+  document.getElementById('itemModalSub').textContent = `${item.id} · ${loc}`;
+  document.getElementById('locGroup').style.display = 'none';
+  document.getElementById('deleteBtn').style.display = 'block';
+  document.getElementById('itemModal').classList.add('open');
+}
+
+function submitItem() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { toast('⚠️ יש להזין שם פריט'); return; }
+
+  const data = {
+    name, cat: document.getElementById('fCat').value.trim(),
+    type: document.getElementById('fType').value.trim(),
+    size: document.getElementById('fSize').value.trim(),
+    qty: parseInt(document.getElementById('fQty').value)||0,
+    min: parseInt(document.getElementById('fMin').value)||0,
+    price: parseInt(document.getElementById('fPrice').value)||0,
+  };
+
+  if (state.editItem) {
+    // Edit existing
+    const loc = state.editLoc;
+    const idx = (state.inventory[loc]||[]).findIndex(i => i.id === state.editItem.id);
+    if (idx >= 0) Object.assign(state.inventory[loc][idx], data);
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+        action:'updateItem', location:loc, mkt:state.editItem.id, ...data
+      })}).catch(console.error);
+    }
+    toast('✓ פריט עודכן');
+  } else {
+    // Add new
+    const loc = document.getElementById('fLoc').value;
+    const maxNum = getMaxMkt();
+    const newMkt = 'INV-' + String(maxNum + 1).padStart(3, '0');
+    const newItem = {id: newMkt, ...data, notes: ''};
+    if (!state.inventory[loc]) state.inventory[loc] = [];
+    state.inventory[loc].push(newItem);
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+        action:'addItem', location:loc, ...data
+      })}).catch(console.error);
+    }
+    toast(`✓ פריט נוסף (${newMkt})`);
+  }
+
+  save();
+  closeModal('itemModal');
+  renderInventory();
+}
+
+function deleteItem() {
+  if (!state.editItem) return;
+  if (!confirm('למחוק את הפריט ' + state.editItem.name + '?')) return;
+  const loc = state.editLoc;
+  const idx = (state.inventory[loc]||[]).findIndex(i => i.id === state.editItem.id);
+  if (idx >= 0) state.inventory[loc].splice(idx, 1);
+  if (SCRIPT_URL) {
+    fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({
+      action:'deleteItem', location:loc, mkt:state.editItem.id
+    })}).catch(console.error);
+  }
+  save();
+  closeModal('itemModal');
+  toast('🗑 פריט נמחק');
+  renderInventory();
+}
+
+function getMaxMkt() {
+  let max = 428; // based on existing data
+  LOCATIONS.forEach(loc => {
+    (state.inventory[loc]||[]).forEach(i => {
+      if (i.id && i.id.startsWith('INV-')) {
+        const n = parseInt(i.id.replace('INV-','').split('-')[0]);
+        if (n > max) max = n;
+      }
+    });
+  });
+  return max;
+}
+
+// ── Sync ──────────────────────────────────────────
+async function syncSheets() {
+  if (!SCRIPT_URL) {
+    toast('⚠️ Apps Script לא מוגדר עדיין');
+    return;
+  }
+  showLoader(true);
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getAll');
+    const json = await res.json();
+    if (json.success) {
+      // Map from Sheets format to app format
+      const newInv = {};
+      LOCATIONS.forEach(loc => {
+        const rows = json.data[loc] || [];
+        newInv[loc] = rows.map(row => {
+          // Try all possible מקט column name variants
+          const mkt = (row['מק"ט'] || row["מק'ט"] || row['מקט'] || row['מק״ט'] || '').toString().trim();
+          const name = (row['שם פריט'] || '').toString().trim();
+          const cat = (row['קטגוריה'] || '').toString().trim();
+          const size = (row['מידה'] || '').toString().trim();
+          const type = (row['סוג'] || '').toString().trim();
+          const qty = parseInt(row['כמות'])||0;
+          const min = parseInt(row['סף התרעה']||row['סף התראה'])||0;
+          const price = parseFloat(row['מחיר (₪)'])||0;
+          const notes = (row['הערות'] || '').toString().trim();
+          return { id: mkt, cat, name, size, type, qty, min, price, notes };
+        }).filter(i => i.id);
+      });
+      state.inventory = newInv;
+      state.lastSync = new Date().toLocaleString('he-IL');
+      localStorage.setItem('epc_sync', state.lastSync);
+      save();
+      renderInventory();
+      updateAlertBadge();
+      toast('✓ סנכרון הושלם בהצלחה');
+    } else {
+      toast('שגיאה: ' + json.error);
+    }
+  } catch(e) {
+    toast('❌ שגיאת חיבור');
+  } finally {
+    showLoader(false);
+  }
+}
+
+// ── Utils ─────────────────────────────────────────
+function closeModal(id, e) {
+  if (!e || e.target === document.getElementById(id))
+    document.getElementById(id).classList.remove('open');
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showLoader(v) {
+  document.getElementById('loader').style.display = v ? 'flex' : 'none';
+}
+
+// ── Init ──────────────────────────────────────────
+// Check if already logged in this session
+if (sessionStorage.getItem('epc_auth') === '1') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  renderInventory();
+  updateAlertBadge();
+}
+
+document.getElementById('loginScreen').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// Save session on login
+const origLogin = doLogin;
+window.doLogin = function() {
+  const pw = document.getElementById('pwInput').value;
+  if (pw === PASSWORD) sessionStorage.setItem('epc_auth','1');
+  origLogin();
+};
+</script>
+</body>
+</html>
